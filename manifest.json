@@ -2,14 +2,15 @@
   "name": "PS1 Model Converter · TAYGERX",
   "short_name": "PS1 Converter",
   "description": "Convertí modelos 3D al estilo retro PS1 y exportalos en video",
-  "start_url": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#080809",
   "theme_color": "#00ff41",
   "orientation": "landscape",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
