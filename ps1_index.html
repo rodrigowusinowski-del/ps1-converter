@@ -314,16 +314,17 @@ psc.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial(
 // ── SHADERS ────────────────────────────────────
 const VERT=`
 uniform float snapRes;
-varying vec3 vN;varying vec2 vUv;
+varying vec3 vN;
+varying vec2 vUv;
 void main(){
-  vN=normalize(normalMatrix*normal);
-  #ifdef USE_UV
-    vUv=uv;
-  #else
-    vUv=vec2(0.0);
-  #endif
-  vec4 cp=projectionMatrix*modelViewMatrix*vec4(position,1.0);
-  if(snapRes>0.0){vec2 s=floor(cp.xy/cp.w*snapRes+0.5)/snapRes*cp.w;cp.xy=s;}
+  // World-space normals: consistent with world-space light directions
+  vN = normalize(mat3(modelMatrix) * normal);
+  vUv = uv;
+  vec4 cp = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+  if(snapRes>0.0){
+    vec2 s=floor(cp.xy/cp.w*snapRes+0.5)/snapRes*cp.w;
+    cp.xy=s;
+  }
   gl_Position=cp;
 }`;
 
@@ -396,19 +397,18 @@ function syncAll(){
     m.snapRes.value=U.snapRes.value;m.colorBits.value=U.colorBits.value;m.ambient.value=U.ambient.value;
     m.animStrength.value=U.animStrength.value;m.useDither.value=U.useDither.value;m.paletteMode.value=U.paletteMode.value;
     m.time.value=U.time.value;
+    m.diffuse.value.copy(U.diffuse.value);
     m.ld1.value.copy(U.ld1.value);m.lc1.value.copy(U.lc1.value);m.li1.value=U.li1.value;
     m.ld2.value.copy(U.ld2.value);m.lc2.value.copy(U.lc2.value);m.li2.value=U.li2.value;
     m.ld3.value.copy(U.ld3.value);m.lc3.value.copy(U.lc3.value);m.li3.value=U.li3.value;
   }
 }
-function makeM(tex, hasUV=true){
+function makeM(tex){
   const u=cloneU(tex);
-  if(!hasUV){ u.useTex.value=0; }
   allMats.push(u);
   return new THREE.ShaderMaterial({
     vertexShader:VERT, fragmentShader:FRAG, uniforms:u,
-    side:THREE.DoubleSide,
-    defines: hasUV ? {USE_UV:1} : {}
+    side:THREE.DoubleSide
   });
 }
 
@@ -428,12 +428,10 @@ function applyGroup(g){
   g.traverse(ch=>{
     if(!ch.isMesh)return;
     const geo=ch.geometry;
-    // Ensure normals exist
     if(!geo.attributes.normal) geo.computeVertexNormals();
-    const hasUV=!!geo.attributes.uv;
-    const old=Array.isArray(ch.material)?ch.material[0]:ch.material;
-    const tex=(hasUV&&old&&old.map)?old.map:null;
-    ch.material=makeM(tex,hasUV);
+    // Don't use model textures (async load causes black)
+    // Users can import texture separately with the Import Texture button
+    ch.material=makeM(null);
   });
   fit(g);const wg=buildWire(g);wg.position.copy(g.position);wg.scale.copy(g.scale);
   scene.add(g);if(showWire)scene.add(wg);modelGroup=g;wireGroup=wg;
