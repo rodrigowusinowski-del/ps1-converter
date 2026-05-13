@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retro Model Converter · TAYGERX</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00ff41">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--panel:#0d0d10;--sec:#0a0a0d;
+  --b1:#222228;--b2:#333340;
+  --tx:#c0c0cc;--dim:#50505c;
+  --green:#00ff41;--warn:#ff5500;
+  --btn:#141418;--btnh:#1c1c24;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{display:flex;flex-direction:column;font-family:'IBM Plex Mono',monospace;color:var(--tx);font-size:11px}
+#hdr{display:flex;align-items:center;justify-content:space-between;padding:5px 12px;border-bottom:1px solid var(--b1);background:var(--panel);flex-shrink:0}
+#hdr .logo{font-size:10px;letter-spacing:3px;color:var(--green);font-weight:700}
+#hdr .sub{font-size:9px;color:var(--dim);letter-spacing:1px}
+#body{display:flex;flex:1;overflow:hidden}
+#viewer{flex:1;position:relative;background:#000;overflow:hidden}
+#viewer canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+#vlbl{position:absolute;top:8px;left:10px;font-size:9px;color:var(--dim);letter-spacing:1px;pointer-events:none}
+#cbadge{position:absolute;top:8px;right:14px;font-size:9px;letter-spacing:2px;color:var(--green);opacity:.6;pointer-events:none}
+#sbar{position:absolute;bottom:8px;left:10px;right:10px;display:flex;justify-content:space-between;font-size:9px;color:var(--dim);pointer-events:none}
+#drop{position:absolute;inset:20px;display:flex;align-items:center;justify-content:center;font-size:12px;letter-spacing:3px;color:var(--green);border:2px dashed var(--green);opacity:0;pointer-events:none;transition:opacity .15s}
+#drop.show{opacity:1}
+#viewer::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.1) 3px,rgba(0,0,0,.1) 4px)}
+#sb{width:218px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--b1) transparent}
+.sec{border-bottom:1px solid var(--b1);background:var(--sec)}
+.sh{padding:6px 10px;display:flex;align-items:center;justify-content:space-between}
+.st{font-size:9px;letter-spacing:2px;color:var(--green);font-weight:700}
+.sb{padding:7px 10px;display:flex;flex-direction:column;gap:6px}
+.hint{font-size:9px;color:var(--dim);line-height:1.5}
+.btn{background:var(--btn);border:1px solid var(--b2);color:var(--tx);font-family:inherit;font-size:9px;letter-spacing:1px;padding:6px 8px;cursor:pointer;text-align:center;transition:background .12s,border-color .12s;width:100%}
+.btn:hover{background:var(--btnh);border-color:var(--green)}
+.btn.g{background:#00ff4114;border-color:var(--green);color:var(--green)}
+.btn.g:hover{background:#00ff4126}
+.btn.r{background:#ff550014;border-color:var(--warn);color:var(--warn)}
+.btn.r:hover{background:#ff550026}
+.row{display:flex;gap:4px}
+.tog{flex:1;padding:5px;font-family:inherit;font-size:9px;letter-spacing:1px;cursor:pointer;border:1px solid var(--b1);background:var(--btn);color:var(--dim);text-align:center;transition:all .12s}
+.tog.on{background:#00ff4114;border-color:var(--green);color:var(--green)}
+.sl{display:flex;flex-direction:column;gap:3px}
+.sl-l{display:flex;justify-content:space-between;font-size:9px;color:var(--dim)}
+.sl-l span:last-child{color:var(--tx)}
+input[type=range]{width:100%;height:2px;-webkit-appearance:none;appearance:none;background:var(--b2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;background:var(--green);cursor:pointer}
+.swatches{display:flex;gap:4px;flex-wrap:wrap}
+.sw{width:22px;height:22px;cursor:pointer;border:2px solid transparent;transition:border-color .12s;flex-shrink:0}
+.sw.on{border-color:var(--green)}
+.lrow{display:flex;align-items:center;gap:5px}
+.lbulb{width:8px;height:8px;border:1px solid var(--dim);cursor:pointer;flex-shrink:0;transition:all .12s}
+.lbulb.on{background:var(--green);border-color:var(--green)}
+.lname{font-size:9px;color:var(--dim);width:18px;flex-shrink:0}
+input[type=color]{width:22px;height:18px;border:none;padding:0;cursor:pointer;background:none;flex-shrink:0}
+.lrow input[type=range]{flex:1}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.pb{padding:5px 2px;font-family:inherit;font-size:8px;letter-spacing:1px;cursor:pointer;border:1px solid var(--b2);background:var(--btn);color:var(--dim);text-align:center;transition:all .12s}
+.pb:hover{border-color:var(--green);color:var(--tx)}
+.pb.on{background:#00ff4114;border-color:var(--green);color:var(--green)}
+.kfbtn{flex:1;padding:5px 3px;font-family:inherit;font-size:9px;cursor:pointer;border:1px solid var(--b2);background:var(--btn);color:var(--dim);text-align:center;transition:all .12s}
+.kfbtn:hover{border-color:var(--green)}
+.kfbtn.set{border-color:#ffaa00;color:#ffaa00;background:#ffaa0014}
+#recind{display:none;align-items:center;gap:5px;font-size:9px;color:var(--warn);margin-bottom:5px}
+.rdot{width:6px;height:6px;background:var(--warn);border-radius:50%;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+#foot{padding:8px;margin-top:auto;border-top:1px solid var(--b1)}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <span class="logo">RETRO MODEL CONVERTER</span>
+  <span class="sub">by TAYGERX · v2.0</span>
+</div>
+
+<div id="body">
+<div id="viewer">
+  <span id="vlbl">Model Viewer</span>
+  <span id="cbadge">PS1</span>
+  <canvas id="c"></canvas>
+  <div id="drop">DROP AQUÍ</div>
+  <div id="sbar"><span id="status">Sin modelo · geometría por defecto</span><span id="fps">—</span></div>
+</div>
+
+<div id="sb">
+
+<div class="sec">
+  <div class="sh"><span class="st">CONSOLE PRESETS</span></div>
+  <div class="sb">
+    <div class="pgrid">
+      <div class="pb" id="p-nes"    onclick="applyPreset('nes')">NES</div>
+      <div class="pb" id="p-gb"     onclick="applyPreset('gb')">GB</div>
+      <div class="pb" id="p-snes"   onclick="applyPreset('snes')">SNES</div>
+      <div class="pb" id="p-saturn" onclick="applyPreset('saturn')">SAT</div>
+      <div class="pb on" id="p-ps1" onclick="applyPreset('ps1')">PS1</div>
+      <div class="pb" id="p-n64"    onclick="applyPreset('n64')">N64</div>
+      <div class="pb" id="p-ps2"    onclick="applyPreset('ps2')">PS2</div>
+      <div class="pb" id="p-custom" onclick="applyPreset('custom')">CUST</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">MODEL IMPORT</span></div>
+  <div class="sb">
+    <div class="hint">Soportado: .obj · .glb · .gltf</div>
+    <input type="file" id="fin" accept=".obj,.glb,.gltf" style="display:none">
+    <button class="btn" onclick="document.getElementById('fin').click()">Load 3D Model</button>
+    <div class="row">
+      <button class="btn" onclick="loadPrim('torusknot')">Torus</button>
+      <button class="btn" onclick="loadPrim('sphere')">Sphere</button>
+      <button class="btn" onclick="loadPrim('box')">Box</button>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">TEXTURE</span></div>
+  <div class="sb">
+    <div class="hint">Aplicar imagen al modelo</div>
+    <input type="file" id="tin" accept="image/*" style="display:none">
+    <button class="btn" onclick="document.getElementById('tin').click()">Import Texture</button>
+    <button class="btn" onclick="clearTex()">Clear Texture</button>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">BACKGROUND</span></div>
+  <div class="sb">
+    <div class="swatches" id="bgsw">
+      <div class="sw on" style="background:#000000" data-c="#000000"></div>
+      <div class="sw" style="background:#000820" data-c="#000820"></div>
+      <div class="sw" style="background:#001408" data-c="#001408"></div>
+      <div class="sw" style="background:#140010" data-c="#140010"></div>
+      <div class="sw" style="background:#0a0814" data-c="#0a0814"></div>
+      <div class="sw" style="background:#100800" data-c="#100800"></div>
+      <div class="sw" style="background:#1a1a22" data-c="#1a1a22"></div>
+      <div class="sw" style="background:#00ff00;border-color:#444" data-c="#00ff00" title="Chroma Key Verde"></div>
+      <div class="sw" style="background:#0000ff;border-color:#444" data-c="#0000ff" title="Chroma Key Azul"></div>
+      <input type="color" id="bgc" value="#000000" style="width:22px;height:22px;border:1px solid var(--b2);cursor:pointer;padding:0;background:none">
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">ANIMATE</span></div>
+  <div class="sb">
+    <div class="row">
+      <div class="tog on" id="t-orbit"  onclick="setMode('orbit')">ORBIT</div>
+      <div class="tog"    id="t-auto"   onclick="setMode('auto')">AUTO</div>
+      <div class="tog"    id="t-kf"     onclick="setMode('keyframe')">KF</div>
+    </div>
+    <div class="row">
+      <div class="kfbtn" id="kfa" onclick="setKF('A')">SET A</div>
+      <div class="kfbtn" id="kfb" onclick="setKF('B')">SET B</div>
+      <div class="kfbtn" onclick="clearKF()">CLEAR</div>
+    </div>
+    <div class="hint" id="kfhint">Rotá → SET A, movelo → SET B, activá KF</div>
+    <div class="sl">
+      <div class="sl-l"><span>VELOCIDAD</span><span id="spdv">1.0</span></div>
+      <input type="range" id="spd" min="0.1" max="4" step="0.1" value="1" oninput="SPD=+this.value;spdv.textContent=SPD.toFixed(1)">
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>EJE X</span><span id="axv">0.00</span></div>
+      <input type="range" id="ax" min="-1" max="1" step="0.05" value="0" oninput="AX=+this.value;axv.textContent=AX.toFixed(2)">
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>EJE Y</span><span id="ayv">1.00</span></div>
+      <input type="range" id="ay" min="-1" max="1" step="0.05" value="1" oninput="AY=+this.value;ayv.textContent=AY.toFixed(2)">
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">RETRO EFFECT</span></div>
+  <div class="sb">
+    <div class="sl">
+      <div class="sl-l"><span>SNAP RES</span><span id="snapv">64</span></div>
+      <input type="range" id="snap" min="0" max="512" step="4" value="64" oninput="U.snapRes.value=+this.value;snapv.textContent=this.value">
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>RENDER RES</span><span id="resv">320×240</span></div>
+      <input type="range" id="res" min="0" max="4" step="1" value="1" oninput="setRes(+this.value)">
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>COLOR BITS</span><span id="bitsv">5</span></div>
+      <input type="range" id="bits" min="1" max="8" step="1" value="5" oninput="U.colorBits.value=+this.value;bitsv.textContent=this.value">
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>AMBIENT</span><span id="ambv">0.15</span></div>
+      <input type="range" id="amb" min="0" max="0.6" step="0.01" value="0.15" oninput="U.ambient.value=+this.value;ambv.textContent=(+this.value).toFixed(2)">
+    </div>
+    <div class="sl-l" style="margin-top:2px"><span>DITHERING BAYER</span></div>
+    <div class="row">
+      <div class="tog on" id="tdoff" onclick="setDither(false)">OFF</div>
+      <div class="tog"    id="tdon"  onclick="setDither(true)">ON</div>
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>ANIMATE COLOR</span><span id="animv">0.00</span></div>
+      <input type="range" id="animc" min="0" max="1" step="0.05" value="0" oninput="U.animStrength.value=+this.value;animv.textContent=(+this.value).toFixed(2)">
+    </div>
+    <div class="sl-l" style="margin-top:2px"><span>PALETA</span></div>
+    <div class="row" style="flex-wrap:wrap;gap:3px">
+      <div class="tog on" id="pal0" onclick="setPal(0)" style="flex:none;padding:4px 5px">NORM</div>
+      <div class="tog"    id="pal1" onclick="setPal(1)" style="flex:none;padding:4px 5px;color:#4a8">GB GRN</div>
+      <div class="tog"    id="pal2" onclick="setPal(2)" style="flex:none;padding:4px 5px">GB GRY</div>
+      <div class="tog"    id="pal3" onclick="setPal(3)" style="flex:none;padding:4px 5px;color:#fa8">SEPIA</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">GEOMETRY</span></div>
+  <div class="sb">
+    <div class="row">
+      <div class="tog"    id="twoff" onclick="setWire(false)">SOLID</div>
+      <div class="tog on" id="twon"  onclick="setWire(true)">+ WIRE</div>
+    </div>
+    <div class="sl">
+      <div class="sl-l"><span>WIRE ALPHA</span><span id="wav">0.12</span></div>
+      <input type="range" id="wa" min="0" max="0.5" step="0.01" value="0.12" oninput="WIRE_ALPHA=+this.value;wav.textContent=(+this.value).toFixed(2);updateWA()">
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sh"><span class="st">LIGHTING SETUP</span></div>
+  <div class="sb">
+    <div class="lrow">
+      <div class="lbulb on" id="lb1" onclick="toggleL(1)"></div>
+      <span class="lname">L1</span>
+      <input type="color" id="lc1" value="#ffffff" oninput="setLC(1,this.value)">
+      <input type="range" id="li1" min="0" max="1.5" step="0.05" value="0.8" oninput="setLI(1,+this.value)">
+    </div>
+    <div class="lrow">
+      <div class="lbulb on" id="lb2" onclick="toggleL(2)"></div>
+      <span class="lname">L2</span>
+      <input type="color" id="lc2" value="#4466ff" oninput="setLC(2,this.value)">
+      <input type="range" id="li2" min="0" max="1.5" step="0.05" value="0.4" oninput="setLI(2,+this.value)">
+    </div>
+    <div class="lrow">
+      <div class="lbulb" id="lb3" onclick="toggleL(3)"></div>
+      <span class="lname">L3</span>
+      <input type="color" id="lc3" value="#ff4400" oninput="setLC(3,this.value)">
+      <input type="range" id="li3" min="0" max="1.5" step="0.05" value="0" oninput="setLI(3,+this.value)">
+    </div>
+  </div>
+</div>
+
+<div id="foot">
+  <div id="recind"><div class="rdot"></div><span id="rect">REC 0:00</span></div>
+  <button class="btn g" id="expbtn" onclick="toggleExp()">EXPORT VIDEO</button>
+</div>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+// ── STATE ──────────────────────────────────────
+let SPD=1,AX=0,AY=1,WIRE_ALPHA=0.12;
+let animMode='orbit',showWire=true;
+let modelGroup=null,wireGroup=null;
+let lights={1:{on:true},2:{on:true},3:{on:false}};
+let mediaRec=null,recChunks=[],recStart=null,recTimer=null;
+let allMats=[];
+const KF={A:null,B:null};
+const PRESETS={
+  nes:    {name:'NES',    snap:20, bits:2,res:0,dither:true, pal:3,amb:.25,l1:.7,l2:.2,l3:0},
+  gb:     {name:'GAME BOY',snap:16,bits:2,res:0,dither:true, pal:1,amb:.3, l1:.8,l2:.1,l3:0},
+  snes:   {name:'SNES',  snap:32, bits:4,res:1,dither:true, pal:0,amb:.2, l1:.8,l2:.3,l3:0},
+  saturn: {name:'SATURN',snap:48, bits:5,res:1,dither:true, pal:0,amb:.15,l1:.8,l2:.4,l3:0},
+  ps1:    {name:'PS1',   snap:64, bits:5,res:1,dither:false,pal:0,amb:.15,l1:.8,l2:.4,l3:0},
+  n64:    {name:'N64',   snap:128,bits:5,res:1,dither:false,pal:0,amb:.2, l1:.8,l2:.3,l3:.1},
+  ps2:    {name:'PS2',   snap:512,bits:8,res:3,dither:false,pal:0,amb:.2, l1:.9,l2:.3,l3:.1},
+  custom: {name:'CUSTOM',snap:64, bits:5,res:1,dither:false,pal:0,amb:.15,l1:.8,l2:.4,l3:0},
+};
+const RESS=[[160,120],[320,240],[480,360],[640,480],[960,720]];
+let curRes=1;
+
+// ── THREE.JS ───────────────────────────────────
+const cv=document.getElementById('c');
+const ve=document.getElementById('viewer');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0);
+const cam=new THREE.PerspectiveCamera(45,1,.01,500);cam.position.set(0,0,4);
+const rdr=new THREE.WebGLRenderer({canvas:cv,antialias:false,preserveDrawingBuffer:true});rdr.setPixelRatio(1);
+
+// Manual orbit
+const orb={theta:.4,phi:1.2,r:4,tgt:new THREE.Vector3()};
+let oDrag=false,oPrev={x:0,y:0};
+function orbCam(){if(animMode!=='orbit')return;cam.position.set(orb.tgt.x+orb.r*Math.sin(orb.phi)*Math.sin(orb.theta),orb.tgt.y+orb.r*Math.cos(orb.phi),orb.tgt.z+orb.r*Math.sin(orb.phi)*Math.cos(orb.theta));cam.lookAt(orb.tgt)}
+cv.addEventListener('mousedown',e=>{if(animMode!=='orbit')return;oDrag=true;oPrev={x:e.clientX,y:e.clientY}});
+window.addEventListener('mouseup',()=>oDrag=false);
+window.addEventListener('mousemove',e=>{if(!oDrag)return;orb.theta-=(e.clientX-oPrev.x)*.008;orb.phi=Math.max(.05,Math.min(Math.PI-.05,orb.phi+(e.clientY-oPrev.y)*.008));oPrev={x:e.clientX,y:e.clientY}});
+cv.addEventListener('wheel',e=>{orb.r=Math.max(.5,Math.min(30,orb.r+e.deltaY*.01));e.preventDefault()},{passive:false});
+let tPrev=null;
+cv.addEventListener('touchstart',e=>{if(animMode!=='orbit')return;tPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
+cv.addEventListener('touchmove',e=>{if(!tPrev||animMode!=='orbit')return;orb.theta-=(e.touches[0].clientX-tPrev.x)*.008;orb.phi=Math.max(.05,Math.min(Math.PI-.05,orb.phi+(e.touches[0].clientY-tPrev.y)*.008));tPrev={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
+cv.addEventListener('touchend',()=>tPrev=null,{passive:true});
+
+let RT=new THREE.WebGLRenderTarget(320,240,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter});
+const psc=new THREE.Scene(),pcc=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+psc.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),new THREE.MeshBasicMaterial({map:RT.texture})));
+
+// ── SHADERS ────────────────────────────────────
+const VERT=`
+uniform float snapRes;
+varying vec3 vN;varying vec2 vUv;
+void main(){
+  vN=normalize(normalMatrix*normal);
+  #ifdef USE_UV
+    vUv=uv;
+  #else
+    vUv=vec2(0.0);
+  #endif
+  vec4 cp=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+  if(snapRes>0.0){vec2 s=floor(cp.xy/cp.w*snapRes+0.5)/snapRes*cp.w;cp.xy=s;}
+  gl_Position=cp;
+}`;
+
+const FRAG=`
+precision mediump float;
+uniform float colorBits,ambient,animStrength,useDither,paletteMode,time,useTex;
+uniform vec3 diffuse;
+uniform vec3 ld1,lc1;uniform float li1;
+uniform vec3 ld2,lc2;uniform float li2;
+uniform vec3 ld3,lc3;uniform float li3;
+uniform sampler2D map;
+varying vec3 vN;varying vec2 vUv;
+float bayer(vec2 p){
+  int x=int(mod(p.x,4.0)),y=int(mod(p.y,4.0));float v=0.0;
+  if(y==0){if(x==0)v=0.;else if(x==1)v=8.;else if(x==2)v=2.;else v=10.;}
+  else if(y==1){if(x==0)v=12.;else if(x==1)v=4.;else if(x==2)v=14.;else v=6.;}
+  else if(y==2){if(x==0)v=3.;else if(x==1)v=11.;else if(x==2)v=1.;else v=9.;}
+  else{if(x==0)v=15.;else if(x==1)v=7.;else if(x==2)v=13.;else v=5.;}
+  return v/16.0;
+}
+void main(){
+  vec3 n=normalize(vN);
+  vec3 light=vec3(ambient);
+  light+=lc1*max(dot(n,ld1),0.0)*li1;
+  light+=lc2*max(dot(n,ld2),0.0)*li2;
+  light+=lc3*max(dot(n,ld3),0.0)*li3;
+  vec3 base=mix(diffuse,texture2D(map,vUv).rgb,useTex);
+  vec3 col=base*light;
+  if(animStrength>0.0){
+    vec3 pulse=0.5+0.5*sin(time*2.0*vec3(1.0,1.3,.7)+vec3(0.0,2.1,4.2));
+    col=mix(col,col*(0.5+1.0*pulse),animStrength);
+  }
+  if(useDither>0.5)col+=(bayer(gl_FragCoord.xy)-.5)*(1.0/pow(2.0,colorBits));
+  float lv=pow(2.0,colorBits)-1.0;col=floor(col*lv+0.5)/lv;
+  if(paletteMode>0.5&&paletteMode<1.5){
+    float lm=dot(col,vec3(0.299,0.587,0.114));
+    if(lm<0.25)col=vec3(0.059,0.220,0.059);else if(lm<0.5)col=vec3(0.188,0.384,0.188);else if(lm<0.75)col=vec3(0.545,0.675,0.059);else col=vec3(0.608,0.737,0.059);
+  }else if(paletteMode>1.5&&paletteMode<2.5){
+    float lm=dot(col,vec3(0.299,0.587,0.114));
+    if(lm<0.25)col=vec3(0.08,0.08,0.09);else if(lm<0.5)col=vec3(0.32,0.32,0.35);else if(lm<0.75)col=vec3(0.62,0.62,0.66);else col=vec3(0.93,0.93,0.96);
+  }else if(paletteMode>2.5){
+    float lm=dot(col,vec3(0.299,0.587,0.114));col=vec3(lm*1.1,lm*0.9,lm*0.6);
+  }
+  gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+}`;
+
+// ── UNIFORMS ───────────────────────────────────
+const U={
+  snapRes:{value:64},colorBits:{value:5},ambient:{value:.15},
+  animStrength:{value:0},useDither:{value:0},paletteMode:{value:0},time:{value:0},
+  diffuse:{value:new THREE.Color(.7,.65,.8)},
+  ld1:{value:new THREE.Vector3(1,2,1.5).normalize()},lc1:{value:new THREE.Color(1,1,1)},li1:{value:.8},
+  ld2:{value:new THREE.Vector3(-1,-.5,-1).normalize()},lc2:{value:new THREE.Color(.26,.4,1)},li2:{value:.4},
+  ld3:{value:new THREE.Vector3(0,-1,.5).normalize()},lc3:{value:new THREE.Color(1,.27,0)},li3:{value:0},
+  map:{value:new THREE.Texture()},useTex:{value:0},
+};
+function cloneU(tex){
+  return{
+    snapRes:{value:U.snapRes.value},colorBits:{value:U.colorBits.value},ambient:{value:U.ambient.value},
+    animStrength:{value:U.animStrength.value},useDither:{value:U.useDither.value},paletteMode:{value:U.paletteMode.value},time:{value:0},
+    diffuse:{value:U.diffuse.value.clone()},
+    ld1:{value:U.ld1.value.clone()},lc1:{value:U.lc1.value.clone()},li1:{value:U.li1.value},
+    ld2:{value:U.ld2.value.clone()},lc2:{value:U.lc2.value.clone()},li2:{value:U.li2.value},
+    ld3:{value:U.ld3.value.clone()},lc3:{value:U.lc3.value.clone()},li3:{value:U.li3.value},
+    map:{value:tex||new THREE.Texture()},useTex:{value:tex?1:0},
+  };
+}
+function syncAll(){
+  for(const m of allMats){
+    m.snapRes.value=U.snapRes.value;m.colorBits.value=U.colorBits.value;m.ambient.value=U.ambient.value;
+    m.animStrength.value=U.animStrength.value;m.useDither.value=U.useDither.value;m.paletteMode.value=U.paletteMode.value;
+    m.time.value=U.time.value;
+    m.ld1.value.copy(U.ld1.value);m.lc1.value.copy(U.lc1.value);m.li1.value=U.li1.value;
+    m.ld2.value.copy(U.ld2.value);m.lc2.value.copy(U.lc2.value);m.li2.value=U.li2.value;
+    m.ld3.value.copy(U.ld3.value);m.lc3.value.copy(U.lc3.value);m.li3.value=U.li3.value;
+  }
+}
+function makeM(tex, hasUV=true){
+  const u=cloneU(tex);
+  if(!hasUV){ u.useTex.value=0; }
+  allMats.push(u);
+  return new THREE.ShaderMaterial({
+    vertexShader:VERT, fragmentShader:FRAG, uniforms:u,
+    side:THREE.DoubleSide,
+    defines: hasUV ? {USE_UV:1} : {}
+  });
+}
+
+// ── MODEL ──────────────────────────────────────
+function clr(){if(modelGroup)scene.remove(modelGroup);if(wireGroup)scene.remove(wireGroup);modelGroup=wireGroup=null;allMats=[]}
+function fit(g){const b=new THREE.Box3().setFromObject(g);const c=b.getCenter(new THREE.Vector3());const s=b.getSize(new THREE.Vector3());const sc=2.5/Math.max(s.x,s.y,s.z,.001);g.position.copy(c.negate().multiplyScalar(sc));g.scale.setScalar(sc)}
+function buildWire(g){
+  const wg=new THREE.Group();
+  g.traverse(ch=>{
+    if(!ch.isMesh)return;
+    const wl=new THREE.LineSegments(new THREE.EdgesGeometry(ch.geometry),new THREE.LineBasicMaterial({color:0x00ff41,transparent:true,opacity:WIRE_ALPHA}));
+    wl.position.copy(ch.position);wl.rotation.copy(ch.rotation);wl.scale.copy(ch.scale);wg.add(wl);
+  });
+  return wg;
+}
+function applyGroup(g){
+  g.traverse(ch=>{
+    if(!ch.isMesh)return;
+    const geo=ch.geometry;
+    // Ensure normals exist
+    if(!geo.attributes.normal) geo.computeVertexNormals();
+    const hasUV=!!geo.attributes.uv;
+    const old=Array.isArray(ch.material)?ch.material[0]:ch.material;
+    const tex=(hasUV&&old&&old.map)?old.map:null;
+    ch.material=makeM(tex,hasUV);
+  });
+  fit(g);const wg=buildWire(g);wg.position.copy(g.position);wg.scale.copy(g.scale);
+  scene.add(g);if(showWire)scene.add(wg);modelGroup=g;wireGroup=wg;
+}
+function loadPrim(type){
+  clr();
+  let geo;
+  if(type==='torusknot')geo=new THREE.TorusKnotGeometry(.8,.28,80,8);
+  else if(type==='sphere')geo=new THREE.SphereGeometry(1,16,10);
+  else geo=new THREE.BoxGeometry(1.2,1.2,1.2,4,4,4);
+  const g=new THREE.Group();g.add(new THREE.Mesh(geo,makeM(null)));
+  const wg=new THREE.Group();wg.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:0x00ff41,transparent:true,opacity:WIRE_ALPHA})));
+  fit(g);wg.position.copy(g.position);wg.scale.copy(g.scale);
+  scene.add(g);if(showWire)scene.add(wg);modelGroup=g;wireGroup=wg;
+  document.getElementById('status').textContent='Geometría: '+type;
+}
+loadPrim('torusknot');
+
+function loadFile(f){
+  const ext=f.name.split('.').pop().toLowerCase(),url=URL.createObjectURL(f);
+  clr();document.getElementById('status').textContent='Cargando: '+f.name+'...';
+  const ok=g=>{applyGroup(g);document.getElementById('status').textContent=f.name;URL.revokeObjectURL(url)};
+  const fail=e=>{
+    console.error('Load error:',e);
+    document.getElementById('status').textContent='Error: '+f.name+' (ver consola)';
+    loadPrim('torusknot');URL.revokeObjectURL(url);
+  };
+  if(ext==='obj'){
+    new THREE.OBJLoader().load(url,ok,null,fail);
+  }else if(ext==='glb'||ext==='gltf'){
+    const loader=new THREE.GLTFLoader();
+    // Add Draco support for compressed GLB files
+    const draco=new THREE.DRACOLoader();
+    draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+    loader.setDRACOLoader(draco);
+    loader.load(url,g=>ok(g.scene),p=>{ document.getElementById('status').textContent='Cargando: '+Math.round(p.loaded/p.total*100)+'%' },fail);
+  }else fail('Formato no soportado');
+}
+document.getElementById('fin').addEventListener('change',e=>{const f=e.target.files[0];if(f)loadFile(f);e.target.value=''});
+const dropEl=document.getElementById('drop');
+ve.addEventListener('dragover',e=>{e.preventDefault();dropEl.classList.add('show')});
+ve.addEventListener('dragleave',()=>dropEl.classList.remove('show'));
+ve.addEventListener('drop',e=>{
+  e.preventDefault();dropEl.classList.remove('show');
+  const f=e.dataTransfer.files[0];if(f)loadFile(f);
+});
+
+// ── TEXTURE ────────────────────────────────────
+document.getElementById('tin').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const url=URL.createObjectURL(f);
+  new THREE.TextureLoader().load(url,tex=>{
+    tex.minFilter=tex.magFilter=THREE.NearestFilter;
+    for(const m of allMats){m.map.value=tex;m.useTex.value=1}
+    URL.revokeObjectURL(url);document.getElementById('status').textContent='Textura: '+f.name;
+  });
+  e.target.value='';
+});
+function clearTex(){for(const m of allMats){m.map.value=new THREE.Texture();m.useTex.value=0}document.getElementById('status').textContent='Textura removida'}
+
+// ── BACKGROUND ─────────────────────────────────
+document.getElementById('bgsw').addEventListener('click',e=>{
+  if(!e.target.dataset.c)return;
+  document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));e.target.classList.add('on');
+  scene.background=new THREE.Color(e.target.dataset.c);
+});
+document.getElementById('bgc').addEventListener('input',e=>{document.querySelectorAll('.sw').forEach(s=>s.classList.remove('on'));scene.background=new THREE.Color(e.target.value)});
+
+// ── ANIMATE ────────────────────────────────────
+function setMode(m){
+  animMode=m;
+  ['orbit','auto','kf'].forEach(k=>document.getElementById('t-'+k).classList.toggle('on',k===m||(k==='kf'&&m==='keyframe')));
+}
+function setKF(k){
+  if(!modelGroup)return;
+  KF[k]={rx:modelGroup.rotation.x,ry:modelGroup.rotation.y};
+  document.getElementById('kf'+k.toLowerCase()).classList.add('set');
+  document.getElementById('kfhint').textContent=KF.A&&KF.B?'KF listo — activá modo KF para reproducir':'KF-'+k+' guardado';
+}
+function clearKF(){KF.A=KF.B=null;['kfa','kfb'].forEach(id=>document.getElementById(id).classList.remove('set'));document.getElementById('kfhint').textContent='Rotá → SET A, movelo → SET B, activá KF'}
+
+// ── RETRO SETTINGS ─────────────────────────────
+function setRes(i){curRes=i;const[w,h]=RESS[i];RT.setSize(w,h);document.getElementById('resv').textContent=w+'×'+h}
+function setDither(on){U.useDither.value=on?1:0;document.getElementById('tdoff').classList.toggle('on',!on);document.getElementById('tdon').classList.toggle('on',on)}
+function setPal(n){U.paletteMode.value=n;[0,1,2,3].forEach(i=>document.getElementById('pal'+i).classList.toggle('on',i===n))}
+function setWire(on){showWire=on;document.getElementById('twoff').classList.toggle('on',!on);document.getElementById('twon').classList.toggle('on',on);if(wireGroup)wireGroup.visible=on}
+function updateWA(){if(wireGroup)wireGroup.traverse(c=>{if(c.material&&c.material.opacity!==undefined)c.material.opacity=WIRE_ALPHA})}
+
+// ── LIGHTING ───────────────────────────────────
+function toggleL(n){lights[n].on=!lights[n].on;document.getElementById('lb'+n).classList.toggle('on',lights[n].on);U['li'+n].value=lights[n].on?+document.getElementById('li'+n).value:0}
+function setLC(n,h){U['lc'+n].value=new THREE.Color(h)}
+function setLI(n,v){if(lights[n].on)U['li'+n].value=v}
+
+// ── PRESETS ────────────────────────────────────
+function applyPreset(id){
+  const p=PRESETS[id];if(!p)return;
+  U.snapRes.value=p.snap;U.colorBits.value=p.bits;U.ambient.value=p.amb;
+  U.useDither.value=p.dither?1:0;U.paletteMode.value=p.pal;
+  U.li1.value=p.l1;U.li2.value=p.l2;U.li3.value=p.l3;
+  setRes(p.res);
+  // sync UI
+  const sv=(i,v)=>{const e=document.getElementById(i);if(e)e.value=v};
+  const st=(i,t)=>{const e=document.getElementById(i);if(e)e.textContent=t};
+  sv('snap',p.snap);st('snapv',p.snap);sv('bits',p.bits);st('bitsv',p.bits);
+  sv('res',p.res);sv('amb',p.amb);st('ambv',p.amb.toFixed(2));
+  sv('li1',p.l1);sv('li2',p.l2);sv('li3',p.l3);
+  document.getElementById('tdoff').classList.toggle('on',!p.dither);
+  document.getElementById('tdon').classList.toggle('on',p.dither);
+  setPal(p.pal||0);
+  document.querySelectorAll('.pb').forEach(b=>b.classList.remove('on'));
+  const btn=document.getElementById('p-'+id);if(btn)btn.classList.add('on');
+  document.getElementById('cbadge').textContent=p.name;
+}
+
+// ── EXPORT ─────────────────────────────────────
+function toggleExp(){mediaRec&&mediaRec.state==='recording'?stopRec():startRec()}
+function startRec(){
+  const stream=cv.captureStream(30);
+  let mime='video/webm;codecs=vp9';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
+  mediaRec=new MediaRecorder(stream,{mimeType:mime});recChunks=[];
+  mediaRec.ondataavailable=e=>{if(e.data.size>0)recChunks.push(e.data)};
+  mediaRec.onstop=()=>{
+    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob(recChunks,{type:'video/webm'})),download:'retro_'+document.getElementById('cbadge').textContent.replace(/\s/g,'_')+'.webm'});
+    a.click();URL.revokeObjectURL(a.href);
+    document.getElementById('recind').style.display='none';
+    document.getElementById('expbtn').textContent='EXPORT VIDEO';document.getElementById('expbtn').className='btn g';
+    clearInterval(recTimer);
+  };
+  if(animMode==='orbit')setMode('auto');
+  mediaRec.start();recStart=Date.now();
+  document.getElementById('recind').style.display='flex';
+  document.getElementById('expbtn').textContent='STOP RECORDING';document.getElementById('expbtn').className='btn r';
+  recTimer=setInterval(()=>{const s=Math.floor((Date.now()-recStart)/1000);document.getElementById('rect').textContent='REC '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')},1000);
+}
+function stopRec(){if(mediaRec)mediaRec.stop();mediaRec=null}
+
+// ── RESIZE ─────────────────────────────────────
+function onResize(){const w=ve.clientWidth,h=ve.clientHeight;cam.aspect=w/h;cam.updateProjectionMatrix();rdr.setSize(w,h)}
+window.addEventListener('resize',onResize);onResize();
+
+// ── LOOP ───────────────────────────────────────
+const clock=new THREE.Clock();let lastFT=performance.now(),frames=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta();U.time.value=clock.elapsedTime;syncAll();
+  if(modelGroup){
+    if(animMode==='auto'){
+      modelGroup.rotation.x+=dt*SPD*AX;modelGroup.rotation.y+=dt*SPD*AY;
+      if(wireGroup){wireGroup.rotation.x=modelGroup.rotation.x;wireGroup.rotation.y=modelGroup.rotation.y}
+    }else if(animMode==='keyframe'&&KF.A&&KF.B){
+      const t=(Math.sin(clock.elapsedTime*SPD)+1)/2;
+      modelGroup.rotation.x=KF.A.rx+t*(KF.B.rx-KF.A.rx);modelGroup.rotation.y=KF.A.ry+t*(KF.B.ry-KF.A.ry);
+      if(wireGroup){wireGroup.rotation.x=modelGroup.rotation.x;wireGroup.rotation.y=modelGroup.rotation.y}
+    }
+  }
+  orbCam();
+  rdr.setRenderTarget(RT);rdr.render(scene,cam);
+  rdr.setRenderTarget(null);rdr.render(psc,pcc);
+  frames++;const now=performance.now();
+  if(now-lastFT>600){document.getElementById('fps').textContent=Math.round(frames*1000/(now-lastFT))+' fps · '+RESS[curRes][0]+'×'+RESS[curRes][1];frames=0;lastFT=now}
+}
+animate();
+</script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})</script>
+</body>
+</html>
